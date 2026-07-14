@@ -9,7 +9,11 @@ const PORT = process.env.PORT;
 
 // respond with "hello world" when a GET request is made to the homepage
 app.get('/', (req, res) => {
-  res.send('hello world');
+  res.send('Servidor simple');
+});
+
+app.get('/about', (req, res) => {
+  res.send('About page');
 });
 
 app.listen(PORT, () => {
