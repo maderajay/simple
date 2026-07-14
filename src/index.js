@@ -2,6 +2,14 @@ import express from 'express';
 import { config } from 'dotenv';
 import { MongoClient } from 'mongodb';
 
+const router = express.Router();
+
+// let usuariosRouter = require('./rutas/usuarios');
+// C:\Users\roger\Documents\NPM\Simple\src\rutas\usuarios.js
+import * as usuarios from './rutas/usuarios.js';
+import * as partidos from './rutas/partidos.js';
+import * as paises from './rutas/paises.js';
+
 config(); 
 // Configuración de MongoDB
 const url = process.env.DB_URI;
@@ -9,22 +17,65 @@ const client = new MongoClient(url);
 const dbName = 'mundial';
 let db;
 
-
 const app = express();
-
 const PORT = process.env.PORT;
+
 
 async function connectDB() {
     try {
         await client.connect();
-        console.log(' Conectado con éxito a MongoDB');
+        //console.log(' Conectado con éxito a MongoDB');
         db = client.db(dbName);
     } catch (error) {
         console.error(' Error al conectar a MongoDB:', error);
         process.exit(1); // Detener la app si no hay base de datos
     }
 }
+////////////////////////////////////////////////777
 
+// middleware that is specific to this router
+const timeLog = (req, res, next) => {
+  console.log('Time: ', Date.now());
+  next();
+};
+
+// Middleware para procesar datos en formato JSON
+app.use(express.json());
+
+/////////////////////////////////////////////////7
+
+app.get('/partidos_get', partidos.partidos_get);
+app.get('/partidos_filtro/:numeral', partidos.partidos_filtro);
+app.get('/partidos_filtro_pais/:pais', partidos.partidos_filtro);
+
+app.get('/pais_get', paises.paises_get);
+app.get('/pais_filtro/:id', paises.paises_filtro);
+app.get('/pais_filtro_pais/:pais', paises.paises_filtro);
+
+
+
+app.get('/get', usuarios.usuarios_get);
+
+app.get('/add', async (req, res) => {
+	let sum = usuarios.add(2,3);
+	//console.log(sum);
+	res.send('Suma ' + sum);
+});
+
+app
+  .route('/book')
+  .get((req, res) => {
+    res.send('Get a random book');
+  })
+  .post((req, res) => {
+    res.send('Add a book');
+  })
+  .put((req, res) => {
+    res.send('Update the book');
+  });
+  
+
+  
 ////////////////////////////////////////////////
 
 app.get('/grupos', async (req, res) => {
@@ -52,7 +103,7 @@ app.get('/paises/:id', async (req, res) => {
 		
 		const  params  = req.params;
 		const id = parseInt(params.id);
-		console.log('paises . id', id);
+		//console.log('paises . id', id);
 		
         const paises = await db.collection('paises').find({'id':id}).toArray();
         res.json(paises);
@@ -118,7 +169,12 @@ app.get('/', (req, res) => {
   res.send('Servidor simple');
 });
 
-app.get('/about', (req, res) => {
+app.get('/about/:num', (req, res) => {
+	
+	const  params  = req.params;
+	const num = parseInt(params.num);
+	//console.log('add num ', num );
+	
   res.send('About page');
 });
 

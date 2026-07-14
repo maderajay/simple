@@ -1,19 +1,54 @@
-const express = require('express');
-const router = express.Router();
+import { MongoClient } from 'mongodb';
+import { config } from 'dotenv';
 
-// Middleware specific to this router
-router.use((req, res, next) => {
-  console.log('Users Router Time:', Date.now());
-  next();
-});
 
-// Define routes
-router.get('/', (req, res) => {
-  res.send('Users home page');
-});
+config(); 
+// Configuración de MongoDB
+const url = process.env.DB_URI;
+const client = new MongoClient(url);
+const dbName = 'mundial';
+let db;
 
-router.get('/:id', (req, res) => {
-  res.send(`User profile for ID: ${req.params.id}`);
-});
+async function connectDB() {
+    try {
+        await client.connect();
+        // console.log(' Conectado con éxito a MongoDB');
+        db = client.db(dbName);
+    } catch (error) {
+        console.error(' Error al conectar a MongoDB:', error);
+        process.exit(1); // Detener la app si no hay base de datos
+    }
+}
 
-module.exports = router;
+async function  buscar_paises(){
+	try {
+		const paises = db.collection('paises').find({}).toArray();
+		return paises;
+	}catch(error){		
+		return 'Error : ' + error;
+	}
+}
+
+export function paises_get(req, res){
+
+	connectDB().then(() => {
+		try{
+			
+			buscar_paises().then(
+				data => {
+					//console.log(' data:', data);
+					res.json(data);
+				}
+			);			
+		}catch(error){
+			res.status(500).json({ error: 'Error al obtener paises' });
+		}
+	});
+};
+
+export function usuarios_get(req, res){
+	  res.send('Users home page');
+	};
+
+
+export function add(a, b) { return a + b;}
