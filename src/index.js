@@ -9,6 +9,7 @@ const router = express.Router();
 import * as usuarios from './rutas/usuarios.js';
 import * as partidos from './rutas/partidos.js';
 import * as paises from './rutas/paises.js';
+import * as grupos from './rutas/grupos.js';
 
 config(); 
 // Configuración de MongoDB
@@ -47,6 +48,13 @@ app.use(express.json());
 app.get('/partidos_get', partidos.partidos_get);
 app.get('/partidos_filtro/:numeral', partidos.partidos_filtro);
 app.get('/partidos_filtro_pais/:pais', partidos.partidos_filtro);
+// PUT actualizar
+app.put('/partido_actualizar/:numeral/:goleslocal/:golesvisita/:golespenallocal/:golespenalvisita', partidos.partido_actualizar);
+// POST insert
+app.post('/partido_insertar/:numeral/:paislocal/:paisvisita/:grupo/:fecha', partidos.partido_insertar);
+
+app.get('/partido_actualizar_ids/:pais/:paisid', partidos.partido_actualizar_ids);
+
 
 app.get('/pais_get', paises.paises_get);
 app.get('/pais_filtro/:id', paises.paises_filtro);
@@ -55,6 +63,14 @@ app.get('/pais_filtro_pais/:pais', paises.paises_filtro);
 
 
 app.get('/get', usuarios.usuarios_get);
+
+
+app.route('/grupos').get(grupos.grupos_get)
+  .post(grupos.grupos_get)
+  .delete(grupos.grupos_get)
+  .put(grupos.grupos_get);
+  
+
 
 app.get('/add', async (req, res) => {
 	let sum = usuarios.add(2,3);
@@ -68,10 +84,13 @@ app
     res.send('Get a random book');
   })
   .post((req, res) => {
-    res.send('Add a book');
+    res.send('POST Add a book');
+  })
+  .delete((req, res) => {
+    res.send('DELETE. Eliminar a book');
   })
   .put((req, res) => {
-    res.send('Update the book');
+    res.send('PUT. Update the book');
   });
   
 
@@ -91,8 +110,19 @@ app.get('/grupos', async (req, res) => {
 
 app.get('/paises', async (req, res) => {
     try {
-        const paises = await db.collection('paises').find({}).toArray();
-        res.json(paises);
+        
+		// const paises = await db.collection('paises').find({},{pais:1,_id:0}).toArray();
+		// 											({ campo: { $gt: valor } })
+        const paises = await db.collection('paises').find({id:{$gt:10}}).toArray();
+		//console.log('paises', paises);
+		
+		let resultados = [];
+		
+		paises.forEach(function (p) {
+			 resultados.push({id:p.id, pais:p.pais });
+		  });
+		res.json(resultados);
+		
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener paises' });
     }
