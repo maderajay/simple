@@ -21,6 +21,7 @@ let db;
 const app = express();
 const PORT = process.env.PORT;
 
+const version = 3.0;
 
 async function connectDB() {
     try {
@@ -44,10 +45,29 @@ const timeLog = (req, res, next) => {
 app.use(express.json());
 
 /////////////////////////////////////////////////7
+let rutas = ['/partidos_get','/partidos_filtro/:numeral','/partidos_filtro_pais/:pais',
+	'/partido_actualizar/:numeral/:goleslocal/:golesvisita/:golespenallocal/:golespenalvisita',
+	'/partido_insertar/:numeral/:paislocal/:paisvisita/:grupo/:fecha',	
+	'/partido_actualizar_ids/:pais/:paisid', '/pais_get', 
+	'/pais_filtro/:id', 
+	'/pais_filtro_pais/:pais', 
+	'/grupo_actualizar',
+	'/grupos',
+	'/add','/book',
+	'/grupos_collection','/paises','/paises/:id','/paises/orden/:ord',
+	'/partidos/orden/:pais/:ord',
+	'/partidos',
+	'/partidos/:numeral',
+	'/about', 
+	];
 
 app.get('/partidos_get', partidos.partidos_get);
 app.get('/partidos_filtro/:numeral', partidos.partidos_filtro);
 app.get('/partidos_filtro_pais/:pais', partidos.partidos_filtro);
+
+// put
+app.put('/partido_actualizar_clave_valor/:numeral/:campo/:valor', partidos.partido_actualizar_clave_valor);
+
 // PUT actualizar
 app.put('/partido_actualizar/:numeral/:goleslocal/:golesvisita/:golespenallocal/:golespenalvisita', partidos.partido_actualizar);
 // POST insert
@@ -60,9 +80,8 @@ app.get('/pais_get', paises.paises_get);
 app.get('/pais_filtro/:id', paises.paises_filtro);
 app.get('/pais_filtro_pais/:pais', paises.paises_filtro);
 
-
-
-app.get('/get', usuarios.usuarios_get);
+// PUT actualizar
+app.put('/grupo_actualizar/:id/:grupo', grupos.grupo_actualizar);
 
 
 app.route('/grupos').get(grupos.grupos_get)
@@ -97,7 +116,7 @@ app
   
 ////////////////////////////////////////////////
 
-app.get('/grupos', async (req, res) => {
+app.get('/grupos_collection', async (req, res) => {
     try {
         const grupos = await db.collection('grupos').find({}).toArray();
         res.json(grupos);
@@ -196,16 +215,22 @@ app.get('/partidos/:numeral', async (req, res) => {
 
 // respond with "hello world" when a GET request is made to the homepage
 app.get('/', (req, res) => {
-  res.send('Servidor simple');
+  res.send('Servidor simple (V.' + version + ')');
 });
 
-app.get('/about/:num', (req, res) => {
+app.get('/about', (req, res) => {
 	
-	const  params  = req.params;
-	const num = parseInt(params.num);
-	//console.log('add num ', num );
+	// const  params  = req.params;
+	// const num = parseInt(params.num);
+	// console.log('add num ', num );
 	
-  res.send('About page');
+	let htmlul = " ";
+	rutas.forEach(item => { 
+        htmlul += " " + item + " ";
+    });
+	htmlul += " ";
+	
+	res.json({'About page ':htmlul});
 });
 
 connectDB().then(() => {

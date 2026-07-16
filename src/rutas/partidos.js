@@ -135,7 +135,7 @@ export function partido_actualizar_ids(req, res){
 			let valores_visita = {paisvisita_id:'6a46ddf9b13182a7fa0f2d2f', ultima_actualizacion:''}; 
 			
 			
-			console.log(params);			
+			//console.log(params);			
 			
 			
 			let contar = 0;
@@ -150,40 +150,38 @@ export function partido_actualizar_ids(req, res){
 				console.log('1.local', contar ,filtro, filtro_visita);
 			
 				//6a46ddf8b13182a7fa0f2d29 params.paisid
-				console.log('2.id', "6a46ddf8b13182a7fa0f2d29" );
+				//console.log('2.id', "6a46ddf8b13182a7fa0f2d29" );
 				
 				let pais = '';
 				
 				buscar_id(params.paisid).then(
 					pais => {	
-						console.log('pais', pais);
+						/// console.log('pais', pais);
 					}
 				);
 				
 				
 				if (!ObjectId.isValid(params.paisid)) {
-					console.log({ error: 'Pais _ID inválido' });
+					/// console.log({ error: 'Pais _ID inválido' });
 				}else{
 					var object_id = ObjectId(paisid);
-					console.log('Pais_ID', object_id);
+					/// console.log('Pais_ID', object_id);
 				}
 				
 				if(params.paisid != undefined){
 					
 					const paisid = params.paisid;
 					
-					
-					
 					valores.paislocal_id = ObjectId(paisid);
 					valores_visita.paisvisita_id = ObjectId(paisid);
 					contar++;
 				}
 				
-				console.log('1.visita', contar, valores, valores_visita);
+				/// console.log('1.visita', contar, valores, valores_visita);
 
 			
-			console.log('local',filtro, valores);
-			console.log('visita', filtro_visita, valores_visita);
+			/// console.log('local',filtro, valores);
+			/// console.log('visita', filtro_visita, valores_visita);
 			
 			// res.json(params);
 			
@@ -199,7 +197,7 @@ export function partido_actualizar_ids(req, res){
 				
 				actualizar_muchos_partido(filtro, actualizacion).then(
 					data => {	
-						console.log(data);
+						/// console.log(data);
 					}
 				);
 				
@@ -218,6 +216,67 @@ export function partido_actualizar_ids(req, res){
 }
 
 
+
+export function partido_actualizar_clave_valor(req, res){
+	
+	basedatos.connectDB().then(() => {
+		try{		
+		
+			const params = req.params; 	
+			
+			//console.log(params);
+			let filtro = {numeral:0};
+			let valores = {};
+			//var str = '';
+			
+			for (const property in params) {
+			  console.log(`${property}: ${params[property]}`); 
+			}
+			
+			var campo = params['campo'];
+			var valor = params['valor'];
+			
+			let contar = 0;
+			if(params['numeral'] != undefined){
+				const numeral = params['numeral'];
+				filtro.numeral = parseInt(numeral);
+				contar++;
+			}
+			
+			if(params['campo'] != undefined){
+				campo = params['campo']; 
+				contar++;
+			}
+			if(params['valor'] != undefined){
+				valor = params['valor']; 
+				contar++;
+				
+				if(campo == 'paislocal'){valores.paislocal = valor; }
+				if(campo == 'paisvisita'){valores.paisvisita = valor; }
+				if(campo == 'grupo'){valores.grupo = valor; }
+				if(campo == 'fecha'){valores.fecha = valor; }
+			}
+			
+			if(contar == 3){
+			
+				let fecha = new Date();
+				valores.ultima_actualizacion = fecha;
+				
+				let actualizacion = {$set: valores }
+				
+				actualizar_partido(filtro, actualizacion).then(
+					data => {
+						res.json( {'data':data, 'filtro' :filtro, 'actualizacion' :actualizacion } );
+					}
+				);
+			}
+			
+		}catch(error){
+			res.status(500).json({ error: 'Error Actualizar partido clave valor', mensaje:error });
+		}
+	} );
+	
+}
 
 export function partido_actualizar(req, res){
 	
@@ -291,6 +350,7 @@ export function partidos_filtro(req, res){
 			const  params  = req.params; 
 			
 			let filtro = {};
+			let pais = '';
 			
 			if(params.numeral != undefined){
 				const numeral = parseInt(params.numeral);
@@ -298,7 +358,7 @@ export function partidos_filtro(req, res){
 			}
 			
 			if(params.pais != undefined){
-				const pais = params.pais.trim();
+				pais = params.pais.trim();
 				
 				filtro =  { $or: [ 
 					{ 'paislocal': { $regex: pais } },
@@ -307,13 +367,80 @@ export function partidos_filtro(req, res){
 				};
 			}
 			
-			
-			
 			filtra_partidos(filtro).then(
 				data => {
-					res.json(data);
+					var golesafavor=0;
+					var golesencontra=0;
+					var golespenallocal=0;
+					var golespenalvisita=0;
+					var partidosganados=0;
+					var partidosperdidos=0;
+					var partidosempatados=0;
+					var puntos=0;
+					var paisvisita='';
+					
+					for (const property in data) {
+					  
+					  let item = data[property];
+					  
+					  // console.log(`${property}: ${data[property]}`);
+					  // console.log('informacion' ,data[property], pais);
+					  var glfavor = 0;
+					  var gplfavor = 0;
+					  
+					  var glvisita = 0;
+					  var gpvisita = 0;
+					  
+					  if(item.paislocal == pais){
+						glfavor = parseInt(item.goleslocal);
+						gplfavor = parseInt(item.golespenallocal);
+						
+						glvisita = parseInt(item.golesvisita);
+						gpvisita = parseInt(item.golespenalvisita);
+						
+						paisvisita += item.paisvisita+'.';
+					  }
+					 
+					 if(item.paisvisita == pais){
+						glfavor = parseInt(item.golesvisita);
+						gplfavor = parseInt(item.golespenalvisita);
+						
+						glvisita = parseInt(item.goleslocal);
+						gpvisita = parseInt(item.golespenallocal);
+
+						paisvisita += item.paislocal+'.';
+					  }
+					  
+						golesafavor += parseInt(glfavor);
+						golespenallocal += parseInt(gplfavor);
+
+						golesencontra += parseInt(glvisita);
+						golespenalvisita += parseInt(gpvisita);
+
+						if(glfavor == glvisita){partidosempatados++; puntos++;}
+						else if(glfavor > glvisita){partidosganados++;puntos+=3;}
+						else if(glfavor < glvisita){partidosperdidos++;}
+
+					  
+					}
+					
+					res.json({'data':data, 
+							'goles': {
+								'golesafavor': golesafavor,
+								'golesencontra': golesencontra,
+								'golespenallocal': golespenallocal,
+								'golespenalvisita': golespenalvisita,
+								'partidosganados': partidosganados,
+								'partidosperdidos': partidosperdidos,
+								'partidosempatados': partidosempatados,
+								'puntos':puntos,
+								'pais':pais,
+								'paisvisita':paisvisita
+							}
+						});
 				}
 			);
+			
 		}catch(error){
 			res.status(500).json({ error: 'Error al filtro partidos' });
 		}
