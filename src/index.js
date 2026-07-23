@@ -18,6 +18,8 @@ const client = new MongoClient(url);
 const dbName = 'mundial';
 let db;
 
+const allowedOrigins = ['http://localhost:8080', 'https://expressmundial.onrender.com'];
+
 const app = express();
 const PORT = process.env.PORT;
 
@@ -184,7 +186,7 @@ app.get('/partidos/orden/:pais/:ord', async (req, res) => {
 		const ord = parseInt(params.ord);
 		const pais = params.pais;
 		
-        const partidos = await db.collection('partidos').find({paislocal: pais}).sort({ numeral: ord }).toArray();
+        const partidos = await db.collection('partidos').find({paislocal: pais}).sort({ paislocal: ord }).toArray();
         res.json(partidos);
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener partidos' });
@@ -193,8 +195,16 @@ app.get('/partidos/orden/:pais/:ord', async (req, res) => {
 
 app.get('/partidos', async (req, res) => {
     try {
-        const partidos = await db.collection('partidos').find({}).toArray();
-        res.json(partidos);
+        const partidos = await db.collection('partidos').find({}).sort({paislocal:1}).toArray();
+		
+		const origin = req.headers.origin;
+		if (allowedOrigins.includes(origin)) {
+			res.header('Access-Control-Allow-Origin', origin);
+		}
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+		res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+		res.json(partidos);
+		//res.status(500).json({ error: 'Error al obtener partidos desordenados' });
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener partidos' });
     }
@@ -206,7 +216,14 @@ app.get('/partidos/:numeral', async (req, res) => {
 		const numeral = parseInt(params.numeral);
 		
 		const partidos = await db.collection('partidos').find({'numeral':numeral}).toArray();
-        res.json(partidos);
+        
+		const origin = req.headers.origin;
+		if (allowedOrigins.includes(origin)) {
+			res.header('Access-Control-Allow-Origin', origin);
+		}
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+		res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+		res.json(partidos);
 		
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener partidos' });
@@ -215,7 +232,7 @@ app.get('/partidos/:numeral', async (req, res) => {
 
 // respond with "hello world" when a GET request is made to the homepage
 app.get('/', (req, res) => {
-  res.send('Servidor simple (V.' + version + ')');
+	res.send('Servidor simple (V.' + version + ')');
 });
 
 app.get('/about', (req, res) => {
