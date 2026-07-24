@@ -166,6 +166,28 @@ app.get('/paises/orden/:ord', async (req, res) => {
 
 //////////////////////////
 
+app.get('/partidos/grupo/:grupo/:ord', async (req, res) => {
+    try {
+		
+		const  params  = req.params;
+		const ord = parseInt(params.ord);
+		const grupo = params.grupo;
+		
+        const partidos = await db.collection('partidos').find({grupo: grupo}).sort({ numeral: ord }).toArray();
+		
+		const origin = req.headers.origin;
+		if (allowedOrigins.includes(origin)) {
+			res.header('Access-Control-Allow-Origin', origin);
+		}
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+		res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+		
+        res.json(partidos);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener partidos' });
+    }
+});
+
 app.get('/partidos/orden/:pais/:ord', async (req, res) => {
     try {
 		
