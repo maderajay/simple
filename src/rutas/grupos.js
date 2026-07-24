@@ -1,5 +1,7 @@
 import * as basedatos from './basedatos.js';
 
+const allowedOrigins = ['http://localhost:8080', 'https://expressmundial.onrender.com'];
+
 async function filtra_grupos(filtro){
 	const grupos = basedatos.db.collection('grupos').find(filtro).toArray();
 	return grupos;
@@ -95,6 +97,14 @@ export function grupos_get(req, res){
 		try{			
 			buscar_grupos().then(				
 				data => {
+					
+					const origin = req.headers.origin;
+					if (allowedOrigins.includes(origin)) {
+						res.header('Access-Control-Allow-Origin', origin);
+					}
+					res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+					res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+					
 					res.json(data);
 				}
 			);
