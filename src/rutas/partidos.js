@@ -424,6 +424,14 @@ export function partidos_filtro(req, res){
 					  
 					}
 					
+					const allowedOrigins = ['http://localhost:8080', 'https://expressmundial.onrender.com'];
+					const origin = req.headers.origin;
+					if (allowedOrigins.includes(origin)) {
+						res.header('Access-Control-Allow-Origin', origin);
+					}
+					res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+					res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+					
 					res.json({'data':data, 
 							'goles': {
 								'golesafavor': golesafavor,

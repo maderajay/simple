@@ -100,24 +100,12 @@ app.get('/add', async (req, res) => {
 });
 
 app
-  .route('/book')
-  .get((req, res) => {
-    res.send('Get a random book');
-  })
-  .post((req, res) => {
-    res.send('POST Add a book');
-  })
-  .delete((req, res) => {
-    res.send('DELETE. Eliminar a book');
-  })
-  .put((req, res) => {
-    res.send('PUT. Update the book');
-  });
-  
-
+  .route('/book').get((req, res) => { res.send('Get a random book');
+  }).post((req, res) => { res.send('POST Add a book');
+  }).delete((req, res) => { res.send('DELETE. Eliminar a book');
+  }).put((req, res) => { res.send('PUT. Update the book'); });
   
 ////////////////////////////////////////////////
-
 app.get('/grupos_collection', async (req, res) => {
     try {
         const grupos = await db.collection('grupos').find({}).toArray();
@@ -128,7 +116,6 @@ app.get('/grupos_collection', async (req, res) => {
 });
 
 ////////////////////////////////////////////////
-
 app.get('/paises', async (req, res) => {
     try {
         
