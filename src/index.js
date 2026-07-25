@@ -45,6 +45,16 @@ const timeLog = (req, res, next) => {
   next();
 };
 
+function HeadersAuth(req, res){
+	const origin = req.headers.origin;
+	if (allowedOrigins.includes(origin)) {
+		res.header('Access-Control-Allow-Origin', origin);
+	}
+	res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+	res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
+
+
 // Middleware para procesar datos en formato JSON
 app.use(express.json());
 
@@ -84,6 +94,7 @@ app.get("/login/:user/:pass", async (req, res) => {
 	  expiresIn: '150m'
 	});
 	
+	HeadersAuth(req, res);
 	res.send({'token':token});
 	
 });
