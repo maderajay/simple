@@ -2,6 +2,8 @@ import express from 'express';
 import { config } from 'dotenv';
 import { MongoClient } from 'mongodb';
 
+import jwt from 'jsonwebtoken';
+ 
 const router = express.Router();
 
 // let usuariosRouter = require('./rutas/usuarios');
@@ -63,6 +65,96 @@ let rutas = ['/partidos_get','/partidos_filtro/:numeral','/partidos_filtro_pais/
 	'/about', 
 	];
 
+///////////////////////////////////7
+ 
+app.get("/login/:user/:pass", async (req, res) => {
+	
+	const  params  = req.params;
+	const usuario = params.user.trim();
+	const clave = params.pass.trim();
+	
+	let rol = 'user'
+	if(clave.length > 4){ rol = 'admin'}
+	if(clave.length > 5){ rol = 'super'}
+		
+	const payload = { sub: '12345', role: rol, user:usuario, pass:clave };
+	const secret = process.env.JWT_SECRET;
+
+	const token = jwt.sign(payload, secret, {
+	  expiresIn: '150m'
+	});
+	
+	res.send({'token':token});
+	
+});
+
+app.get("/token", async (req, res) => {
+
+	//const authHeader = req.headers['authorization'];
+	const authHeader = req.headers.authorization;
+	const token0 = authHeader && authHeader.split('.')[0];
+	const token1 = authHeader && authHeader.split('.')[1];
+	const token2 = authHeader && authHeader.split('.')[2];
+
+
+	const token = authHeader
+	
+	if (!token) {
+		return res.status(401).json({ mensaje: 'Token missing', 
+			token0:token0,
+			token1:token1,
+			token2: token2, 
+			headers: authHeader });
+	}
+	
+	jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+	if (err) {
+	  return res.status(403).json({ message: 'Invalid or expired token' });
+	}
+		req.user = decoded;
+		res.send({'decoded':decoded});
+		//next();
+	});
+
+	//res.send({'token':token});
+	
+});
+
+
+app.post("/tokenvalido", async (req, res) => {
+	
+	//res.status(500).json({ error: 'Error token' });
+	//const authHeader = req.headers['authorization']; 
+	const authHeader = req.headers.authorization;
+	const token = authHeader && authHeader.split(' ')[1];
+
+	const token0 = authHeader && authHeader.split(' ')[0];
+	const token1 = authHeader && authHeader.split(' ')[1];
+
+	if (!token) {
+		return res.status(401).json({ mensaje: 'Token missing',
+			token0:token0,
+			token1:token1,
+			headers: req.headers });
+	}
+	
+	jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+		if (err) {
+		  return res.status(403).json({ message: 'Invalid or expired token' , error:err,
+				token0:token0,
+				token1:token1, 
+				tok: authHeader, token:token});
+		}
+		req.user = decoded;
+		res.send({'exito':decoded, 'user':decoded.user});
+		//next();
+	});
+
+	//res.send({'token':token});
+	
+});
+ 
+////////////////////////////////////
 app.get('/partidos_get', partidos.partidos_get);
 app.get('/partidos_filtro/:numeral', partidos.partidos_filtro);
 app.get('/partidos_filtro_pais/:pais', partidos.partidos_filtro);
