@@ -3,6 +3,7 @@ import { config } from 'dotenv';
 import { MongoClient } from 'mongodb';
 
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
  
 const router = express.Router();
 
@@ -50,13 +51,164 @@ function HeadersAuth(req, res){
 	if (allowedOrigins.includes(origin)) {
 		res.header('Access-Control-Allow-Origin', origin);
 	}
+	res.header('Access-Control-Allow-Origin', 'http://localhost:8080');
 	res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
 	res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
 
-// Middleware para procesar datos en formato JSON
-app.use(express.json());
+
+function ValidarToken(req, res, authHeader1){
+	
+	let resultado = {error:100, mensaje:'sindatos'};
+	
+	const authHeader = req.headers.authorization;
+	
+	const token0 = authHeader && authHeader.split(' ')[0]; //Bearer 
+	const token1 = authHeader && authHeader.split(' ')[1];
+	
+	const token = token1
+	
+	if(token == undefined){
+		resultado = { error:4, mensaje: 'Token Invalido / Vacio (Falta Bearer)'};
+		return resultado;
+	}
+	
+
+	if (!token) {
+		resultado = { error:1, mensaje: 'Sin Token'};
+		return resultado;
+	}
+	
+	jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+
+		if (err) {
+			resultado =  { error:2, mensaje: 'Invalid or expired token' };
+		} 
+
+		if(decoded == undefined){
+			resultado =  { error:3, mensaje: 'error token invalido', 'decoded':decoded };
+		}else{ 
+			resultado =  { error:0, mensaje: 'Exito', 'decoded':decoded };
+		}
+	});
+	
+	console.log(resultado);
+	return resultado;
+	
+}
+
+
+//put actuliza datos
+app.put("/usuario/:id/:user/:pass", async (req, res) => {
+	
+	const  params  = req.params;
+	const id = params.id.trim();
+	const usuario = params.user.trim();
+	const pass = params.pass.trim();
+	
+	//console.log({id:id, user:usuario, pass:pass});
+	
+	const saltRounds = 10;
+	let resultado = {info:''};
+	
+	bcrypt.hash(pass, saltRounds, (err, hash) => {
+		
+		if (err) {
+			// Handle error
+			//res.send({'error':err});
+			return res.status(403).json({error:err, message: 'fallo insert usuario' });
+		}
+
+		// Hashing successful, 'hash' contains the hashed password
+		// console.log('Hashed password:', hash);
+		
+		let rol = 'user'
+		if(pass.length > 4){ rol = 'admin'}
+		if(pass.length > 5){ rol = 'super'}
+		
+		params.role = rol;
+		params.clave = hash;
+		
+		let resultado = usuarios.actulizar_clave(req, res, params);	
+	});
+});
+
+
+app.get('/usuarios', usuarios.usuarios_get);
+app.get('/usuario/:user', usuarios.usuarios_buscar);
+app.get("/login/:user/:pass", usuarios.usuarios_login);
+
+/////////no validar token.. Middleware app.use()
+///:numeral/:paislocal/:paisvisita/:grupo/:fecha
+app.post("/usuario/:id/:user/:pass", async (req, res) => {
+	
+	const  params  = req.params;
+	const id = params.id.trim();
+	const usuario = params.user.trim();
+	const pass = params.pass.trim();
+	
+	const saltRounds = 10;
+	let resultado = {};
+	
+	bcrypt.hash(pass, saltRounds, (err, hash) => {
+		
+		if (err) {
+			// Handle error
+			//res.send({'error':err});
+			return res.status(403).json({error:err, message: 'fallo insert usuario' });
+		}
+
+		// Hashing successful, 'hash' contains the hashed password
+		// console.log('Hashed password:', hash);
+		
+		let rol = 'user'
+		if(pass.length > 4){ rol = 'admin'}
+		if(pass.length > 5){ rol = 'super'}
+		
+		params.role = rol;
+		params.clave = hash;
+		
+		let resultado = usuarios.usuario_nuevo(req, res, params);
+	});
+	
+	res.send({'usuario':resultado});
+	
+});
+
+	///////////////////////////////////////// Middleware para procesar datos en formato JSON
+	//////////////////////////////////////////////// app.use(express.json());
+												
+app.use((req, res, next) => {
+	
+
+  //console.log({'req':req, 'res':res})
+	
+	const authHeader = req.headers.authorization;
+	//console.log('authHeader', authHeader);
+	
+	/*
+	if(authHeader == undefined){
+		//console.log('authHeader undefined');
+		return res.status(403).json({ error: 'falta token' });
+	}else{
+		let resultado = ValidarToken(req, res, authHeader);	
+		//console.log('resultado ', resultado);
+		
+		if(resultado.error > 0 ){
+			return res.status(500).json(resultado);
+		}else{
+			next();
+		}
+	}
+	*/
+	
+	next();
+});
+
+
+app.get('/usuarios_lista', usuarios.usuarios_get);
+
 
 /////////////////////////////////////////////////7
 let rutas = ['/partidos_get','/partidos_filtro/:numeral','/partidos_filtro_pais/:pais',
@@ -77,44 +229,19 @@ let rutas = ['/partidos_get','/partidos_filtro/:numeral','/partidos_filtro_pais/
 
 ///////////////////////////////////7
  
-app.get("/login/:user/:pass", async (req, res) => {
-	
-	const  params  = req.params;
-	const usuario = params.user.trim();
-	const clave = params.pass.trim();
-	
-	let rol = 'user'
-	if(clave.length > 4){ rol = 'admin'}
-	if(clave.length > 5){ rol = 'super'}
-		
-	const payload = { sub: '12345', role: rol, user:usuario, pass:clave };
-	const secret = process.env.JWT_SECRET;
-
-	const token = jwt.sign(payload, secret, {
-	  expiresIn: '150m'
-	});
-	
-	HeadersAuth(req, res);
-	res.send({'token':token});
-	
-});
 
 app.get("/token", async (req, res) => {
 
 	//const authHeader = req.headers['authorization'];
 	const authHeader = req.headers.authorization;
-	const token0 = authHeader && authHeader.split('.')[0];
-	const token1 = authHeader && authHeader.split('.')[1];
-	const token2 = authHeader && authHeader.split('.')[2];
+	
+	const token0 = authHeader && authHeader.split(' ')[0]; //Bearer 
+	const token1 = authHeader && authHeader.split(' ')[1];
 
-
-	const token = authHeader
+	const token = token1
 	
 	if (!token) {
 		return res.status(401).json({ mensaje: 'Token missing', 
-			token0:token0,
-			token1:token1,
-			token2: token2, 
 			headers: authHeader });
 	}
 	
@@ -139,7 +266,7 @@ app.post("/tokenvalido", async (req, res) => {
 	const authHeader = req.headers.authorization;
 	const token = authHeader && authHeader.split(' ')[1];
 
-	const token0 = authHeader && authHeader.split(' ')[0];
+	const token0 = authHeader && authHeader.split(' ')[0]; //Bearer 
 	const token1 = authHeader && authHeader.split(' ')[1];
 
 	if (!token) {
@@ -219,32 +346,20 @@ app.get('/grupos_collection', async (req, res) => {
 		}
         res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
 		res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+		
         res.json(grupos);
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener grupos' });
     }
 });
 
+
+
+
 ////////////////////////////////////////////////
-app.get('/paises', async (req, res) => {
-    try {
-        
-		// const paises = await db.collection('paises').find({},{pais:1,_id:0}).toArray();
-		// 											({ campo: { $gt: valor } })
-        const paises = await db.collection('paises').find({id:{$gt:10}}).toArray();
-		//console.log('paises', paises);
-		
-		let resultados = [];
-		
-		paises.forEach(function (p) {
-			 resultados.push({id:p.id, pais:p.pais });
-		  });
-		res.json(resultados);
-		
-    } catch (error) {
-        res.status(500).json({ error: 'Error al obtener paises' });
-    }
-});
+app.get('/paises',  paises.paises_get );
+app.get('/paises_filtro',  paises.paises_filtro_diez);
+
 
 app.get('/paises/:id', async (req, res) => {
     try {
@@ -375,6 +490,11 @@ app.get('/about', (req, res) => {
 	htmlul += " ";
 	
 	res.json({'About page ':htmlul});
+});
+
+
+app.use((req, res, next) => {
+	console.log('Midelware final');
 });
 
 connectDB().then(() => {

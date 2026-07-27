@@ -1,6 +1,17 @@
 import { MongoClient, ObjectId  } from 'mongodb'; 
 import * as basedatos from './basedatos.js';
 
+const allowedOrigins = ['http://localhost:8080', 'https://expressmundial.onrender.com'];
+
+function AgregarHeaders(req, res){
+	const origin = req.headers.origin;
+	if (allowedOrigins.includes(origin)) {
+		res.header('Access-Control-Allow-Origin', origin);
+	}
+	res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+	res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
+
 async function buscar_id(id){
 	//const usuario = await Usuario.findById(req.params.id);
 	const paises = basedatos.db.collection('paises').find({'_ID':id}).toArray();

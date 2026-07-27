@@ -13,7 +13,7 @@ let db = null;
 export async function connectDB() {
     try {
         await client.connect();
-        // console.log(' Conectado con éxito a MongoDB');
+        // 		console.log(' Conectado con éxito a MongoDB', dbName);
         db = client.db(dbName);
     } catch (error) {
         console.error(' Error al conectar a MongoDB : ', error);
