@@ -11,6 +11,18 @@ const client = new MongoClient(url);
 const dbName = 'mundial';
 let db;
 
+const allowedOrigins = ['http://localhost:8080', 'https://expressmundial.onrender.com'];
+
+function AgregarHeaders(req, res){
+	const origin = req.headers.origin;
+	if (allowedOrigins.includes(origin)) {
+		res.header('Access-Control-Allow-Origin', origin);
+	}
+	res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+	res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+}
+
+
 function AccessHeadersAuth(req, res){
 	const origin = req.headers.origin;
 	if (allowedOrigins.includes(origin)) {
@@ -141,6 +153,8 @@ export function actulizar_clave(req, res, params){
 								'data':data, 
 								'filtro' :filtro, 
 								'actualizacion' :actualizacion };
+								
+							AgregarHeaders(req, res);
 							res.status(200).json( resultados );
 						}
 					}
@@ -234,6 +248,7 @@ export function usuarios_get(req, res){
 			buscar_usuarios( filtro ).then(
 				data => {
 					//console.log(' data:', data);
+					AgregarHeaders(req, res);
 					res.json(data);
 				}
 			);			
@@ -249,6 +264,7 @@ export function usuarios_buscar(req, res){
 		try{
 			
 			const  params  = req.params;
+			
 			let filtro = {};
 			
 			if(params.user != undefined){
@@ -256,13 +272,14 @@ export function usuarios_buscar(req, res){
 				filtro.user = user; 
 			}
 			
-			//console.log({params:params, filtro:filtro});
 			buscar_usuarios(filtro).then(
 				data => {
-					console.log({' data': data});
+					//sconsole.log({' data': data});
+					AgregarHeaders(req, res);
 					res.json(data);
 				}
 			);			
+			
 		}catch(error){
 			res.status(500).json({ error: 'Error al obtener usuarios' });
 		}
@@ -333,6 +350,7 @@ export function usuarios_login(req, res){
 							});
 						}else{
 							resultado = {error:'Usuario Bloquedo', bloqueado:user_bloqueado };
+							AgregarHeaders(req, res);
 							res.json({resultado:resultado, rol:user_rol, bloqueado:user_bloqueado});
 						
 						}
@@ -351,7 +369,8 @@ export function usuarios_login(req, res){
 };
 
 export function usuarios_test(req, res){
-  res.send('Users home page');
+	AgregarHeaders(req, res)
+	res.send('Users home page');
 };
 
 

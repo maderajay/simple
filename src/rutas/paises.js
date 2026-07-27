@@ -26,9 +26,9 @@ async function filtra_paises_diez(filtro){
 
 
 
-async function  buscar_paises(){
+async function  buscar_paises(filtro, ordenar){
 	try {
-		const paises = basedatos.db.collection('paises').find({}).toArray();
+		const paises = basedatos.db.collection('paises').find(filtro).sort(ordenar).toArray();
 		return paises;
 	}catch(error){		
 		return 'Error : ' + error;
@@ -142,7 +142,9 @@ export function paises_get(req, res){
 
 	basedatos.connectDB().then(() => {
 		try{			
-			buscar_paises().then(				
+			let filtro = {} 
+			let ordenar = {pais:1}
+			buscar_paises(filtro, ordenar).then(				
 				data => {
 					AgregarHeaders(req, res);
 					res.json(data);
