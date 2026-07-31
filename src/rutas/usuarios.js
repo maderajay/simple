@@ -14,6 +14,7 @@ let db;
 const allowedOrigins = ['http://localhost:8080', 'https://expressmundial.onrender.com'];
 
 function AgregarHeaders(req, res){
+	
 	const origin = req.headers.origin;
 	if (allowedOrigins.includes(origin)) {
 		res.header('Access-Control-Allow-Origin', origin);
@@ -57,7 +58,7 @@ function GenerarToken(usuario, user_rol, user_email, user_fecha_alta){
 async function connectDB() {
     try {
         await client.connect();
-        // console.log(' Conectado con éxito a MongoDB');
+        //     console.log(' Conectado con éxito a MongoDB');
         db = client.db(dbName);
     } catch (error) {
         console.error(' Error al conectar a MongoDB:', error);
@@ -136,7 +137,7 @@ export function actulizar_clave(req, res, params){
 			
 			if(contar > 1){			
 			
-				//console.log({'update':'actulizar_clave', filtro:filtro, valores:valores});
+				//// console.log({'update':'actulizar_clave', filtro:filtro, valores:valores});
 				
 				let fecha = new Date();
 				valores.fecha_ultimamodificacion = fecha;
@@ -231,7 +232,7 @@ export function usuario_nuevo(req, res, params){
 				);
 			}else{
 					
-				//console.log({func:'fin usuario nuevo', cantidad:contar, usuario:usuario});
+				//// console.log({func:'fin usuario nuevo', cantidad:contar, usuario:usuario});
 				res.status(500).json({ error: 'Error al insert usuario, faltan parametros' });
 				return usuario;
 			}
@@ -247,7 +248,7 @@ export function usuarios_get(req, res){
 			let filtro = {};
 			buscar_usuarios( filtro ).then(
 				data => {
-					//console.log(' data:', data);
+					//// console.log(' data:', data);
 					AgregarHeaders(req, res);
 					res.json(data);
 				}
@@ -274,7 +275,7 @@ export function usuarios_buscar(req, res){
 			
 			buscar_usuarios(filtro).then(
 				data => {
-					//sconsole.log({' data': data});
+					//s// console.log({' data': data});
 					AgregarHeaders(req, res);
 					res.json(data);
 				}
@@ -288,82 +289,113 @@ export function usuarios_buscar(req, res){
 
 
 export function usuarios_login(req, res){
-	connectDB().then(() => {
-		try{
-			
-			const  params  = req.params;
-			const usuario = params.user.trim();
-			const clave = params.pass.trim();
 	
+	const  params  = req.params;
+			
+	connectDB().then(() => {	
+		try{
+	
+			// console.log('testeando login');
+			// console.log(params);
+			
+			const usuario = params.user.trim();
+			// console.log('testeando param user ' + usuario);
+			const clave = params.clave.trim();
+			// console.log('testeando param clave ' + clave);
+			 
 			let resultado = {error:'sin datos'};
+			let errores = 0;
 			let filtro = {};
-			
-			if(usuario != undefined){
+	
+			//AgregarHeaders(req, res);
+	
+			if(usuario == undefined){
+				
+				resultado = { error: 'Error login usuario'};
+				errores++;
+			}else{
 				const user = usuario.trim();
-				filtro.user = user; 
+				filtro.user = user; 				
+				// console.log('login usuario', {'filtro': filtro});
+				
 			}
 			
-			if(clave != undefined){
+			// console.log('paso 1', clave);
+			
+			if(clave == undefined){
+				resultado = { error: 'Error login clave'};
+				errores++;
+			}else{
 				const pass = clave.trim(); 
+				// console.log('login clave', {'pass': pass});
 			}
 			
-			//console.log({params:params, filtro:filtro});
-			buscar_usuarios(filtro).then(
-				data => {
-					
-					//console.log({' data': data});
-					resultado = {data:data };
-					
-					if( data.length == 1 ){
-						
-						let user_clave = data[0].clave;
-						let user_rol = data[0].role;
-						let user_bloqueado = parseInt(data[0].bloqueado);
-						let user_email = data[0].email;
-						let user_fecha_alta = data[0].fecha_alta;
-						
-						if(user_bloqueado == 0){
+			// console.log('login pass 2', filtro, errores);
+			
+			if(errores == 0){
+				
+					//// console.log({params:params, filtro:filtro});
+					buscar_usuarios(filtro).then(
+						data => {
 							
-							resultado = {validando:'validando'};
+							// console.log({' data': data});
+							resultado = {data:data };
 							
-							bcrypt.compare(clave, user_clave, (err, result) => {
-								if (err) {
-									// Handle error 
-									resultado = {error:'Error comparing passwords:', mensaje: err};
-								}else{								 
-									if (result) {
-										// Passwords match, authentication successful OK 	
-										let token = GenerarToken(usuario, user_rol, user_email, user_fecha_alta);
+							if( data.length == 1 ){
+								
+								let user_clave = data[0].clave;
+								let user_rol = data[0].role;
+								let user_bloqueado = parseInt(data[0].bloqueado);
+								let user_email = data[0].email;
+								let user_fecha_alta = data[0].fecha_alta;
+								
+								if(user_bloqueado == 0){
+									
+									resultado = {validando:'validando'};
+									
+									bcrypt.compare(clave, user_clave, (err, result) => {
+										if (err) {
+											// Handle error 
+											resultado = {error:'Error comparing passwords:', mensaje: err};
+										}else{								 
+											if (result) {
+												// Passwords match, authentication successful OK 	
+												let token = GenerarToken(usuario, user_rol, user_email, user_fecha_alta);
+												
+												resultado = {resultado:'exito', 
+													token: token,
+													mensaje:'Passwords OK! Usuario autenticado.',
+													message:'Passwords match! User authenticated.'};
+											} else {
+												// Passwords don't match, authentication failed 
+												resultado = {error:'Error pass fallo autenticacion', 
+													message : 'Passwords do not match! Authentication failed.'};
+											}
+										}
 										
-										resultado = {resultado:'exito', 
-											token: token,
-											mensaje:'Passwords OK! Usuario autenticado.',
-											message:'Passwords match! User authenticated.'};
-									} else {
-										// Passwords don't match, authentication failed 
-										resultado = {error:'Error pass fallo autenticacion', 
-											message : 'Passwords do not match! Authentication failed.'};
-									}
+										// console.log(resultado)
+										res.json({resultado:resultado});
+								
+									});
+								}else{
+									resultado = {error:'Usuario Bloquedo', bloqueado:user_bloqueado };
+									// AgregarHeaders(req, res);
+									res.status(200).json({resultado:resultado, rol:user_rol, bloqueado:user_bloqueado});
+								
 								}
-								res.json({resultado:resultado});
-						
-							});
-						}else{
-							resultado = {error:'Usuario Bloquedo', bloqueado:user_bloqueado };
-							AgregarHeaders(req, res);
-							res.json({resultado:resultado, rol:user_rol, bloqueado:user_bloqueado});
-						
+								
+									
+							}else{
+								//res.json(data);
+								res.status(500).json({ error: 'Error login' });
+							}
 						}
-						
-							
-					}else{
-						//res.json(data);
-						res.status(500).json({ error: 'Error login' });
-					}
-				}
-			);			
-		}catch(error){
-			res.status(500).json({ error: 'Error al obtener usuarios' });
+					);		
+			}else{
+				res.status(500).json(resultado);
+			}
+		}catch(err){
+			res.status(500).json({ error:err, mensaje: 'Error al obtener usuarios', parametros: params });
 		}
 	});
 };
@@ -372,6 +404,3 @@ export function usuarios_test(req, res){
 	AgregarHeaders(req, res)
 	res.send('Users home page');
 };
-
-
-export function add(a, b) { return a + b;}

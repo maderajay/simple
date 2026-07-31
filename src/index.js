@@ -13,6 +13,7 @@ import * as usuarios from './rutas/usuarios.js';
 import * as partidos from './rutas/partidos.js';
 import * as paises from './rutas/paises.js';
 import * as grupos from './rutas/grupos.js';
+import * as notas from './rutas/notas.js';
 
 config(); 
 // Configuración de MongoDB
@@ -26,7 +27,26 @@ const allowedOrigins = ['http://localhost:8080', 'https://expressmundial.onrende
 const app = express();
 const PORT = process.env.PORT;
 
-const version = 3.0;
+const version = 4.0;
+
+/////////////////////////////////////////////////7
+let rutas = ['/partidos_get','/partidos_filtro/:numeral','/partidos_filtro_pais/:pais',
+	'/partido_actualizar/:numeral/:goleslocal/:golesvisita/:golespenallocal/:golespenalvisita',
+	'/partido_insertar/:numeral/:paislocal/:paisvisita/:grupo/:fecha',	
+	'/partido_actualizar_ids/:pais/:paisid', '/pais_get', 
+	'/pais_filtro/:id', 
+	'/pais_filtro_pais/:pais', 
+	'/grupo_actualizar',
+	'/grupos',
+	'/add','/book',
+	'/grupos_collection','/paises','/paises/:id','/paises/orden/:ord',
+	'/partidos/orden/:pais/:ord',
+	'/partidos',
+	'/partidos/:numeral',
+	'/about', 
+	'/nososjuez', 
+	];
+
 
 async function connectDB() {
     try {
@@ -57,17 +77,76 @@ function HeadersAuth(req, res){
 }
 
 
+///////////////////////////////////////// Middleware para procesar datos en formato JSON
+	//////////////////////////////////////////////// app.use(express.json());
+			
+app.use('/login/:user/:clave', (req, res, next) => {
+  console.log('Request Type:', req.method);  
+  next();
+});
 
-function ValidarToken(req, res, authHeader1){
+app.get("/login/:user/:clave", usuarios.usuarios_login);
+			
+			
+
+app.use((req, res, next) => {
+		
+		const rutasExcluidas = ['/', '/usuarios', '/login', '/usuarios_test', '/token'];
+		//console.log({'req path':req.path, 'exluidas':rutasExcluidas})
+  
+	  if (rutasExcluidas.includes(req.path)) {
+		//console.log('exluida con exito' + req.path);
+		return next(); // Sale del middleware y pasa a la ruta
+	  }else{
+
+		// console.log('Noooo exluida ' + req.path);
+
+		const authHeader = req.headers.authorization;
+		// console.log('app use authHeader', authHeader);
+		
+		
+		if(authHeader == undefined){
+			// console.log('Auth Header ' + authHeader);
+			return res.status(500).json({ error: 'Sin Token Valido' });
+			//return 0;
+		}else{
+			
+			let resultado = ValidarToken(req, res);	
+			// console.log('resultado ', resultado);
+			
+			if(resultado.error > 0 ){
+				return res.status(500).json(resultado);
+			}else{
+				next();
+			}
+		}	
+		 // next();
+	  }
+	  
+		// next();
+});
+
+
+
+function ValidarToken(req, res){
+	
 	
 	let resultado = {error:100, mensaje:'sindatos'};
-	
+		
 	const authHeader = req.headers.authorization;
+	// console.log('validar token', authHeader);
+	
+	
+	if(authHeader == undefined){
+		resultado = { error:5, mensaje: 'Token header invalido'};
+		return resultado;
+	}
 	
 	const token0 = authHeader && authHeader.split(' ')[0]; //Bearer 
 	const token1 = authHeader && authHeader.split(' ')[1];
 	
 	const token = token1
+	
 	
 	if(token == undefined){
 		resultado = { error:4, mensaje: 'Token Invalido / Vacio (Falta Bearer)'};
@@ -89,11 +168,12 @@ function ValidarToken(req, res, authHeader1){
 		if(decoded == undefined){
 			resultado =  { error:3, mensaje: 'error token invalido', 'decoded':decoded };
 		}else{ 
+			req.user = decoded;	
 			resultado =  { error:0, mensaje: 'Exito', 'decoded':decoded };
 		}
 	});
 	
-	console.log(resultado);
+	// console.log(resultado);
 	return resultado;
 	
 }
@@ -135,9 +215,12 @@ app.put("/usuario/:id/:user/:pass", async (req, res) => {
 });
 
 
+
 app.get('/usuarios', usuarios.usuarios_get);
 app.get('/usuario/:user', usuarios.usuarios_buscar);
-app.get("/login/:user/:pass", usuarios.usuarios_login);
+
+app.get('/usuarios_test', usuarios.usuarios_test); 
+
 
 /////////no validar token.. Middleware app.use()
 ///:numeral/:paislocal/:paisvisita/:grupo/:fecha
@@ -176,57 +259,6 @@ app.post("/usuario/:id/:user/:pass", async (req, res) => {
 	
 });
 
-	///////////////////////////////////////// Middleware para procesar datos en formato JSON
-	//////////////////////////////////////////////// app.use(express.json());
-												
-app.use((req, res, next) => {
-	
-
-  //console.log({'req':req, 'res':res})
-	
-	const authHeader = req.headers.authorization;
-	//console.log('authHeader', authHeader);
-	
-	/*
-	if(authHeader == undefined){
-		//console.log('authHeader undefined');
-		return res.status(403).json({ error: 'falta token' });
-	}else{
-		let resultado = ValidarToken(req, res, authHeader);	
-		//console.log('resultado ', resultado);
-		
-		if(resultado.error > 0 ){
-			return res.status(500).json(resultado);
-		}else{
-			next();
-		}
-	}
-	*/
-	
-	next();
-});
-
-
-app.get('/usuarios_lista', usuarios.usuarios_get);
-
-
-/////////////////////////////////////////////////7
-let rutas = ['/partidos_get','/partidos_filtro/:numeral','/partidos_filtro_pais/:pais',
-	'/partido_actualizar/:numeral/:goleslocal/:golesvisita/:golespenallocal/:golespenalvisita',
-	'/partido_insertar/:numeral/:paislocal/:paisvisita/:grupo/:fecha',	
-	'/partido_actualizar_ids/:pais/:paisid', '/pais_get', 
-	'/pais_filtro/:id', 
-	'/pais_filtro_pais/:pais', 
-	'/grupo_actualizar',
-	'/grupos',
-	'/add','/book',
-	'/grupos_collection','/paises','/paises/:id','/paises/orden/:ord',
-	'/partidos/orden/:pais/:ord',
-	'/partidos',
-	'/partidos/:numeral',
-	'/about', 
-	];
-
 ///////////////////////////////////7
  
 
@@ -240,6 +272,9 @@ app.get("/token", async (req, res) => {
 
 	const token = token1
 	
+	
+	// console.log('metodo token....', authHeader);
+	
 	if (!token) {
 		return res.status(401).json({ mensaje: 'Token missing', 
 			headers: authHeader });
@@ -247,14 +282,15 @@ app.get("/token", async (req, res) => {
 	
 	jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
 	if (err) {
-	  return res.status(403).json({ message: 'Invalid or expired token' });
+	  return res.status(403).json({ message: 'Token Invalido o Expirado', 'decoded':decoded, error:err });
 	}
 		req.user = decoded;
-		res.send({'decoded':decoded});
 		//next();
+		
+		return res.send({'datos':decoded});
+		
 	});
 
-	//res.send({'token':token});
 	
 });
 
@@ -269,6 +305,11 @@ app.post("/tokenvalido", async (req, res) => {
 	const token0 = authHeader && authHeader.split(' ')[0]; //Bearer 
 	const token1 = authHeader && authHeader.split(' ')[1];
 
+	if (!authHeader) {
+		return res.status(401).json({ mensaje: 'header token invalido',
+			headers: req.headers });
+	}
+	
 	if (!token) {
 		return res.status(401).json({ mensaje: 'Token missing',
 			token0:token0,
@@ -474,7 +515,8 @@ app.get('/partidos/:numeral', async (req, res) => {
 
 // respond with "hello world" when a GET request is made to the homepage
 app.get('/', (req, res) => {
-	res.send('Servidor simple (V.' + version + ')');
+	res.json({ 'Servidor':'Servidor Simple', 'Version':version, 'Rutas':rutas });
+	//res.send('Servidor simple (V.' + version + ')');
 });
 
 app.get('/about', (req, res) => {
@@ -492,10 +534,24 @@ app.get('/about', (req, res) => {
 	res.json({'About page ':htmlul});
 });
 
+///////////
 
+app.get('/notas', notas.notas_get);
+app.get('/notas/:titulo', notas.notas_get);
+app.get('/notasxuser/:user', notas.notas_get);
+
+app.get('/notas_test', notas.notas_test);
+app.post('/nota/:titulo/:nota', notas.nota_nueva);
+
+app.get('/contadores', notas.nota_inicio_contador);
+
+////////
+
+/*
 app.use((req, res, next) => {
-	console.log('Midelware final');
+	// console.log('Midelware final');
 });
+*/
 
 connectDB().then(() => {
     app.listen(PORT, () => {
